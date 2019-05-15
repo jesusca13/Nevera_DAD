@@ -45,16 +45,16 @@ public class RestServer extends AbstractVerticle {
 
 		router.route().handler(BodyHandler.create());
 
-		// definir Get (se puede añadir expresion regular)
-		// URL(base de datos del producto) /producto/metodo que gestiona la peticion
+		// Get (se puede añadir expresion regular)
 		// /: -> indica que es un parametro (no texto)
 		
 		//Sensores
-		router.get("/sensores").handler(this::handleAllSensores);
+		router.get("/sensores/:IdNevera").handler(this::handleAllSensores); //Mostrar sensores de la nevera que le digamos. Ej localhost/sensores/2
 		router.put("/sensores/add").handler(this::handleAñadirSensor);
 		
 		//Usuarios
-		router.get("/usuarios").handler(this::handleAllUsuarios);
+		router.get("/usuarios").handler(this::handleAllUsuarios); //Mostrar todos los usuarios
+		router.get("/usuarios/:IdUsuario").handler(this::handleUsuarios); //Mostrar usuario del Id que queremos
 		router.put("/usuarios/add").handler(this::handleAñadirUsuario);
 		router.put("/usuarios/eliminar").handler(this::handleEliminarUsuario); //eliminar por nombre y apellido
 		
@@ -71,8 +71,10 @@ public class RestServer extends AbstractVerticle {
 		router.get("/productos").handler(this::handleAllProductos);
 		router.put("/productos/add").handler(this::handleAñadirProducto);
 		router.put("/productos/eliminar").handler(this::handleEliminarProducto); //eliminar productro
+		router.get("/productos/:IdNevera").handler(this::handleProductos);
 		router.put("/productos/aumentar").handler(this::handleAumentarProducto); //sumar 1 de un producto
 		router.put("/productos/disminuir").handler(this::handleDisminuirProducto); //restar 1 de un prodcuto
+		
 		router.put("/productos/fechaC").handler(this::handleFechaProducto); //actualizar FechaCaducidad producto
 		
 		//Historial
@@ -80,16 +82,16 @@ public class RestServer extends AbstractVerticle {
 		router.put("/historial/add").handler(this::handleAñadirHistorial); //Añadir alimento a historial de alimentos
 		
 		//Nevera
-		router.get("/neveras").handler(this::handleAllNeveras);
+		router.get("/neveras/:IdUsuario").handler(this::handleNeveras);
 		router.put("/neveras/add").handler(this::handleAñadirNevera);
 		
-		//ejemplos clase
-		//router.put("/products/:productID/info").handler(this::handleProduct);
-		//router.put("/products/:productID/:property").handler(this::handleProductProperty); 
 	}
 	
 	/*
-
+	 * 
+	 * //ejemplos clase
+		//router.put("/products/:productID/info").handler(this::handleProduct);
+		//router.put("/products/:productID/:property").handler(this::handleProductProperty); 
 	private void handleProduct(RoutingContext routingContext) {
 
 		String paramStr = routingContext.pathParam("productID"); // transformar a string product url
@@ -109,15 +111,16 @@ public class RestServer extends AbstractVerticle {
 		JsonObject body = routingContext.getBodyAsJson();
 		routingContext.response().putHeader("content-type", "application/json").end(body.encode());
 	}
-	
 	*/
+	
 
 	private void handleAllSensores(RoutingContext routingContext) { 
 
+		String paramStr = routingContext.pathParam("IdNevera");
 		
 		mySQLClient.getConnection(connection-> {
 			if(connection.succeeded()) {
-				connection.result().query("SELECT * FROM sensor", result -> {
+				connection.result().query("SELECT * FROM sensor where IdNevera = '" + paramStr + "'", result -> {
 					if(result.succeeded()) {
 						
 						//Pasar de JsonObject a String
@@ -165,6 +168,38 @@ public class RestServer extends AbstractVerticle {
 					}else {
 						System.out.println(result.cause().getMessage());
 						routingContext.response().setStatusCode(400).end(); // avisar a cliente de que ha petado la peticion
+					}
+				});
+				
+			}else {
+				System.out.println(connection.cause().getMessage());
+				routingContext.response().setStatusCode(400).end();	
+			}
+		});
+	}
+	
+	private void handleUsuarios(RoutingContext routingContext) { 
+		
+		String paramStr = routingContext.pathParam("IdUsuario");
+		
+		mySQLClient.getConnection(connection-> {
+			if(connection.succeeded()) {
+				connection.result().query("SELECT * FROM usuario where IdUsuario = '" + paramStr + "'", result -> {
+					if(result.succeeded()) {
+						
+						Gson gson = new Gson();
+						List<Usuario> Usuarios = new ArrayList<>();
+						for (JsonObject json : result.result().getRows()) {
+							Usuarios.add(gson.fromJson(json.encode(), Usuario.class));
+						}
+						routingContext.response().end(gson.toJson(Usuarios));
+						
+						String jsonResult = new JsonArray (result.result().getRows()).encodePrettily();
+						routingContext.response().end(jsonResult);   
+						
+					}else {
+						System.out.println(result.cause().getMessage());
+						routingContext.response().setStatusCode(400).end();
 					}
 				});
 				
@@ -362,11 +397,12 @@ public class RestServer extends AbstractVerticle {
 		Integer cantidad = jsonO.getInteger("cantidad");
 		Double FechaCaducidad = jsonO.getDouble("FechaCaducidad");
     	Integer IdAlimento = jsonO.getInteger("IdAlimento");
+    	Integer IdNevera = jsonO.getInteger("IdNevera");
     		  			
 		mySQLClient.getConnection(connection-> {
 			if(connection.succeeded()) {
-				connection.result().query("INSERT INTO producto (IdProducto, cantidad, FechaCaducidad, IdAlimento) "
-						+ "VALUES ('" + IdProducto + "', '" + cantidad + "', '" + FechaCaducidad + "', '" + IdAlimento + "')", result -> {
+				connection.result().query("INSERT INTO producto (IdProducto, cantidad, FechaCaducidad, IdAlimento, IdNevera) "
+						+ "VALUES ('" + IdProducto + "', '" + cantidad + "', '" + FechaCaducidad + "', '" + IdAlimento + "', '" + IdNevera + "')", result -> {
 					if(result.succeeded()) {
 							
 						routingContext.response().setStatusCode(200).end();	
@@ -467,6 +503,39 @@ public class RestServer extends AbstractVerticle {
 		mySQLClient.getConnection(connection-> {
 			if(connection.succeeded()) {
 				connection.result().query("SELECT * FROM producto", result -> {
+					if(result.succeeded()) {
+						
+						//Pasar de JsonObject a String
+						Gson gson = new Gson();
+						List<Producto> productos = new ArrayList<>();
+						for (JsonObject json : result.result().getRows()) {
+							productos.add(gson.fromJson(json.encode(), Producto.class));
+						}
+						routingContext.response().end(gson.toJson(productos));
+						
+						String jsonResult = new JsonArray (result.result().getRows()).encodePrettily();
+						routingContext.response().end(jsonResult);   
+						
+					}else {
+						System.out.println(result.cause().getMessage());
+						routingContext.response().setStatusCode(400).end(); 
+					}
+				});
+				
+			}else {
+				System.out.println(connection.cause().getMessage());
+				routingContext.response().setStatusCode(400).end();	
+			}
+		});
+	}
+    
+    private void handleProductos(RoutingContext routingContext) { 
+    	
+    	String paramStr = routingContext.pathParam("IdNevera");
+    	
+		mySQLClient.getConnection(connection-> {
+			if(connection.succeeded()) {
+				connection.result().query("SELECT * FROM producto where IdNevera = '" + paramStr + "'", result -> {
 					if(result.succeeded()) {
 						
 						//Pasar de JsonObject a String
@@ -600,11 +669,13 @@ public class RestServer extends AbstractVerticle {
 		});
 	}
     
-    private void handleAllNeveras(RoutingContext routingContext) { 
+    private void handleNeveras(RoutingContext routingContext) { 
+    	
+    	String paramStr = routingContext.pathParam("IdUsuario");
     	
 		mySQLClient.getConnection(connection-> {
 			if(connection.succeeded()) {
-				connection.result().query("SELECT * FROM nevera", result -> {
+				connection.result().query("SELECT * FROM nevera where IdUsuario = '" + paramStr + "'", result -> {
 					if(result.succeeded()) {
 						
 						//Pasar de JsonObject a String
@@ -687,5 +758,6 @@ public class RestServer extends AbstractVerticle {
 		}
 	});
 }
+    
 }
 

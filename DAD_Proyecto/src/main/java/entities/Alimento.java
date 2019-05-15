@@ -5,26 +5,18 @@ public class Alimento {
 	private Integer IdAlimento;
 	private String Nombre;
 	private Integer TemperaturaRecomendada;
-	private Integer IdNevera;
 	
-	public Alimento(Integer idAlimento, String nombre, Integer temperaturaRecomendada, Integer idNevera) {
+	
+	public Alimento(Integer idAlimento, String nombre, Integer temperaturaRecomendada) {
 		super();
 		IdAlimento = idAlimento;
 		Nombre = nombre;
 		TemperaturaRecomendada = temperaturaRecomendada;
-		IdNevera = idNevera;
+		
 	}
 	
 	public Alimento() {
-		this(0, "", 0, 0);
-	}
-
-	public Integer getIdNevera() {
-		return IdNevera;
-	}
-
-	public void setIdNevera(Integer idNevera) {
-		IdNevera = idNevera;
+		this(0, "", 0);
 	}
 
 	public Integer getIdAlimento() {

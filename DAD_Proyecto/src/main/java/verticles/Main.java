@@ -15,7 +15,7 @@ public class Main extends AbstractVerticle { // Es un verticle
 		//vertx.deployVerticle(new TcpServer());
 		//vertx.deployVerticle(new TcpClient());
 		vertx.deployVerticle(new RestServer());
-		vertx.deployVerticle(new MqttExample());
+		//vertx.deployVerticle(new MqttExample());
 		
 
 		// No se permite lanzar varios verticle en paralelo, para ello desplegamos
